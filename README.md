@@ -1,4 +1,4 @@
-# Portfolio Brief Agent
+# Daily Portfolio Brief Agent
 
 A TypeScript agent that generates a concise market-close portfolio briefing.
 
