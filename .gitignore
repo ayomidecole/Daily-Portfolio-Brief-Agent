@@ -1,6 +1,7 @@
 .build-by-learning-state.md
 .env
 .env.*
+!.env.example
 node_modules/
 dist/
 .langgraph/
