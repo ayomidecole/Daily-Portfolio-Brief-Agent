@@ -1,5 +1,6 @@
 import type {
   Holding,
+  HoldingMover,
   PortfolioPerformance,
   PortfolioSnapshot,
 } from "../domain/portfolio.js";
@@ -34,4 +35,36 @@ export function calculatePortfolioPerformance(
     dayChangeAmount,
     dayChangePercent,
   };
+}
+
+export function calculateTopMovers(
+  snapshot: PortfolioSnapshot,
+  limit: number,
+): HoldingMover[] {
+  if (limit <= 0) {
+    return [];
+  }
+
+  return snapshot.holdings
+    .filter((holding) => holding.quantity !== 0)
+    .map<HoldingMover>((holding) => {
+      const priceChange = holding.currentPrice - holding.previousClose;
+      const dayChangeAmount = holding.quantity * priceChange;
+      const dayChangePercent = priceChange / holding.previousClose;
+      const direction =
+        priceChange > 0 ? "gain" : priceChange < 0 ? "loss" : "flat";
+
+      return {
+        symbol: holding.symbol,
+        direction,
+        dayChangeAmount,
+        dayChangePercent,
+      };
+    })
+    .sort(
+      (first, second) =>
+        Math.abs(second.dayChangePercent) -
+        Math.abs(first.dayChangePercent),
+    )
+    .slice(0, limit);
 }

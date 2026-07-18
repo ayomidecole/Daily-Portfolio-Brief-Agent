@@ -12,16 +12,29 @@ The application reads fictional portfolio data, calculates performance with norm
 sequenceDiagram
     actor User
     participant CLI as index.ts
-    participant Agent as LangChain agent + OpenAI
-    participant Tool as Portfolio performance tool
-    participant Core as Mock data + TypeScript math
+    participant Agent as LangChain agent + OpenAI Responses API
+    participant Snapshot as Snapshot tool
+    participant Performance as Performance tool
+    participant Movers as Movers tool
+    participant Data as Mock portfolio data
+    participant Math as TypeScript portfolio math
 
     User->>CLI: Run the application
-    CLI->>Agent: Request a brief and send portfolio data
-    Agent->>Tool: Ask for calculated performance
-    Tool->>Core: Read portfolio and calculate totals
-    Core-->>Tool: Return totals and daily change
-    Tool-->>Agent: Return structured results
+    CLI->>Agent: Request a market-close brief
+    Agent->>Snapshot: Retrieve raw portfolio facts
+    Snapshot->>Data: Read the current snapshot
+    Data-->>Snapshot: Holdings, prices, cash, and events
+    Snapshot-->>Agent: Return structured snapshot
+    Agent->>Performance: Request totals and daily performance
+    Performance->>Data: Read the current snapshot
+    Performance->>Math: Calculate deterministic performance
+    Math-->>Performance: Totals and daily change
+    Performance-->>Agent: Return structured performance
+    Agent->>Movers: Request notable movers
+    Movers->>Data: Read the current snapshot
+    Movers->>Math: Calculate and rank movers
+    Math-->>Movers: Return structured movers
+    Movers-->>Agent: Return mover results
     Agent-->>CLI: Write the final brief
     CLI-->>User: Print the brief
 ```
@@ -34,8 +47,10 @@ Read the diagram from top to bottom. Each arrow is one piece of information movi
 | --- | --- |
 | `src/index.ts` | Starts the application, asks the agent for a brief, and prints the answer. |
 | `src/agents/portfolioBriefAgent.ts` | Defines the agent's model, instructions, safety rules, and tools. |
+| `src/tools/getPortfolioSnapshot.ts` | Gives the agent access to raw holdings, prices, cash, and upcoming events. |
 | `src/tools/getPortfolioPerformance.ts` | Gives the agent access to trusted portfolio calculations. |
-| `src/analysis/portfolioMath.ts` | Calculates totals and daily changes using normal TypeScript. |
+| `src/tools/getPortfolioMovers.ts` | Gives the agent deterministic daily gainers and losers. |
+| `src/analysis/portfolioMath.ts` | Calculates holding values, portfolio performance, and movers using normal TypeScript. |
 | `src/data/mockPortfolio.ts` | Holds fictional portfolio data while the real provider is not connected. |
 | `src/domain/portfolio.ts` | Defines the shapes of holdings, snapshots, calculations, risks, and briefs. |
 | `src/analysis/portfolioMath.test.ts` | Checks that the TypeScript calculations are correct. |
@@ -51,26 +66,26 @@ AI agent: explain facts
 
 This makes important values testable and repeatable. The agent should not independently calculate totals that normal code can calculate more reliably.
 
-## Current Temporary Problem
+## Current Temporary Compromises
 
-The mock portfolio is currently read twice:
+The CLI now sends only user intent, so portfolio facts flow through tools rather than through the prompt. However, each local tool imports the same mock snapshot independently.
 
-1. `index.ts` sends it to the agent as part of the request.
-2. The performance tool reads it again to calculate totals.
+This is safe while the source is one immutable fictional object. A live provider could return different snapshots across separate calls, so the later provider boundary must fetch once per run or otherwise guarantee one consistent snapshot.
 
-These two reads use the same data today, but they could disagree in the future. The next step adds a `get_portfolio_snapshot` tool and removes portfolio data from `index.ts`. The tools will then become the one trusted path to portfolio data.
+Model construction and provider selection also remain inside the agent module for now. A later configuration boundary will centralize model and environment setup.
 
 ## Planned Growth
 
 The architecture will expand gradually:
 
-1. Establish one portfolio-data path through tools.
-2. Add tested tools for movers, concentration risk, and events.
+1. Add deterministic concentration-risk and upcoming-event tools.
+2. Add direct tool contract and failure tests.
 3. Validate the final brief with Zod.
-4. Add LangSmith traces and evals.
-5. Replace mock data with a read-only MCP connection.
-6. Express the workflow in LangGraph.
-7. Add notifications, scheduling, CI, Docker, and VM deployment.
+4. Introduce a reusable configuration and provider boundary.
+5. Add LangSmith traces and evals.
+6. Replace mock data with a read-only MCP connection.
+7. Express the workflow in LangGraph.
+8. Add notifications, scheduling, CI, Docker, and VM deployment.
 
 ## Update Checklist
 
