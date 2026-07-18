@@ -1,18 +1,12 @@
 import "dotenv/config";
 
 import { portfolioBriefAgent } from "./agents/portfolioBriefAgent.js";
-import { mockPortfolioSnapshot } from "./data/mockPortfolio.js";
-
-
-const portfolioData = JSON.stringify(mockPortfolioSnapshot, null, 2);
 
 const result = await portfolioBriefAgent.invoke({
   messages: [
     {
       role: "user",
-      content: `Create a market-close portfolio brief using this snapshot:
-
-${portfolioData}`,
+      content: `Create a market-close portfolio brief using the current portfolio snapshot.`,
     },
   ],
 });
