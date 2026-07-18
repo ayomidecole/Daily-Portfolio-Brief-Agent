@@ -16,8 +16,9 @@ sequenceDiagram
     participant Snapshot as Snapshot tool
     participant Performance as Performance tool
     participant Movers as Movers tool
+    participant Risk as Concentration risk tool
     participant Data as Mock portfolio data
-    participant Math as TypeScript portfolio math
+    participant Analysis as TypeScript analysis functions
 
     User->>CLI: Run the application
     CLI->>Agent: Request a market-close brief
@@ -27,14 +28,19 @@ sequenceDiagram
     Snapshot-->>Agent: Return structured snapshot
     Agent->>Performance: Request totals and daily performance
     Performance->>Data: Read the current snapshot
-    Performance->>Math: Calculate deterministic performance
-    Math-->>Performance: Totals and daily change
+    Performance->>Analysis: Calculate deterministic performance
+    Analysis-->>Performance: Totals and daily change
     Performance-->>Agent: Return structured performance
     Agent->>Movers: Request notable movers
     Movers->>Data: Read the current snapshot
-    Movers->>Math: Calculate and rank movers
-    Math-->>Movers: Return structured movers
+    Movers->>Analysis: Calculate and rank movers
+    Analysis-->>Movers: Return structured movers
     Movers-->>Agent: Return mover results
+    Agent->>Risk: Request concentration risks
+    Risk->>Data: Read the current snapshot
+    Risk->>Analysis: Calculate weights and classify risks
+    Analysis-->>Risk: Return structured risk signals
+    Risk-->>Agent: Return concentration risks
     Agent-->>CLI: Write the final brief
     CLI-->>User: Print the brief
 ```
@@ -50,10 +56,13 @@ Read the diagram from top to bottom. Each arrow is one piece of information movi
 | `src/tools/getPortfolioSnapshot.ts` | Gives the agent access to raw holdings, prices, cash, and upcoming events. |
 | `src/tools/getPortfolioPerformance.ts` | Gives the agent access to trusted portfolio calculations. |
 | `src/tools/getPortfolioMovers.ts` | Gives the agent deterministic daily gainers and losers. |
+| `src/tools/getPortfolioConcentrationRisks.ts` | Gives the agent deterministic concentration-risk signals using a configurable portfolio-weight threshold. |
 | `src/analysis/portfolioMath.ts` | Calculates holding values, portfolio performance, and movers using normal TypeScript. |
+| `src/analysis/portfolioRisk.ts` | Calculates, classifies, and ranks holding concentration risks using total portfolio value including cash. |
 | `src/data/mockPortfolio.ts` | Holds fictional portfolio data while the real provider is not connected. |
 | `src/domain/portfolio.ts` | Defines the shapes of holdings, snapshots, calculations, risks, and briefs. |
 | `src/analysis/portfolioMath.test.ts` | Checks that the TypeScript calculations are correct. |
+| `src/analysis/portfolioRisk.test.ts` | Checks concentration thresholds, severity boundaries, ordering, and edge cases. |
 
 ## Most Important Design Rule
 
@@ -78,7 +87,7 @@ Model construction and provider selection also remain inside the agent module fo
 
 The architecture will expand gradually:
 
-1. Add deterministic concentration-risk and upcoming-event tools.
+1. Add a deterministic upcoming-event tool.
 2. Add direct tool contract and failure tests.
 3. Validate the final brief with Zod.
 4. Introduce a reusable configuration and provider boundary.
