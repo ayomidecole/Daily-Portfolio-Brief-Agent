@@ -1,13 +1,26 @@
-import { ChatOpenAI } from "@langchain/openai"
 import "dotenv/config";
 
-const llm = new ChatOpenAI({
-    model: "gpt-5.6-sol",
-    temperature: 1
-})
+import { portfolioBriefAgent } from "./agents/portfolioBriefAgent.js";
+import { mockPortfolioSnapshot } from "./data/mockPortfolio.js";
 
-const input = "In one sentence, explain what a daily portfolio brief should tell an investor."
 
-const result = await llm.invoke(input)
-console.log(result.content)
+const portfolioData = JSON.stringify(mockPortfolioSnapshot, null, 2);
 
+const result = await portfolioBriefAgent.invoke({
+  messages: [
+    {
+      role: "user",
+      content: `Create a market-close portfolio brief using this snapshot:
+
+${portfolioData}`,
+    },
+  ],
+});
+
+const finalMessage = result.messages.at(-1);
+
+if (!finalMessage) {
+  throw new Error("The portfolio brief agent returned no messages.");
+}
+
+console.log(finalMessage.content);
