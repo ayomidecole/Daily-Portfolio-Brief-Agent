@@ -72,6 +72,7 @@ Read the diagram from top to bottom. Each arrow is one piece of information movi
 | `src/analysis/portfolioMath.test.ts` | Checks that the TypeScript calculations are correct. |
 | `src/analysis/portfolioRisk.test.ts` | Checks concentration thresholds, severity boundaries, ordering, and edge cases. |
 | `src/analysis/portfolioEvents.test.ts` | Checks event filtering, ordering, limits, date boundaries, and invalid input. |
+| `src/tools/portfolioTools.test.ts` | Checks tool names, default and explicit arguments, structured returns, and schema rejection without calling a model. |
 
 ## Most Important Design Rule
 
